@@ -14,10 +14,7 @@ const router = express.Router();
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 
-// 🔥 TEMP FIX (to confirm issue)
-router.get("/profile", (req, res) => {
-  res.json({ message: "Profile working" });
-});
+router.get("/profile", authMiddleware, getProfile); // ✅ FINAL FIX
 
 router.post("/logout", logoutUser);
 

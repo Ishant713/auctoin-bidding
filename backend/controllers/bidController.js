@@ -69,38 +69,28 @@ const getBidHistory = async (req, res) => {
 };
 
 const getBidsByUser = async (req, res) => {
-	try {
-		const token = req.headers.authorization.split(" ")[1];
+  try {
+    const userId = req.user.id; // ✅ FIXED (no JWT decode)
 
-		const { id } = jwt.decode(token, process.env.JWT_SECRET, (err) => {
-			if (err) {
-				console.log(err);
-				return res.status(500).json({ message: err.message });
-			}
-		});
+    let bids = await Bid.find({ userId });
 
-		let bids = await Bid.find({ userId: id });
-		bids = await Promise.all(
-			bids.map(async (bid) => {
-				const auctionItem = await AuctionItem.findById(
-					bid.auctionItemId
-				);
-				const bidObject = bid.toObject();
-				delete bidObject.auctionItemId;
-				return {
-					...bidObject,
-					auctionItem,
-				};
-			})
-		);
+    bids = await Promise.all(
+      bids.map(async (bid) => {
+        const auctionItem = await AuctionItem.findById(bid.auctionItemId);
+        const bidObject = bid.toObject();
+        delete bidObject.auctionItemId;
 
-		res.status(200).json({
-			bids,
-		});
-	} catch (error) {
-		console.log(error.message);
-		res.status(500).json({ message: error.message });
-	}
+        return {
+          ...bidObject,
+          auctionItem,
+        };
+      })
+    );
+
+    res.status(200).json({ bids });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 module.exports = {

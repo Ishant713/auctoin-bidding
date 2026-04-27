@@ -46,22 +46,15 @@ const getAuctionItemById = async (req, res) => {
 };
 
 const getAuctionItemsByUser = async (req, res) => {
-	try {
-		const token = req.headers.authorization.split(" ")[1];
-		const { id } = jwt.decode(token, process.env.JWT_SECRET, (err) => {
-			if (err) {
-				console.log(err);
-				return res.status(500).json({ message: err.message });
-			}
-		});
-		const auctionItems = await AuctionItem.find({ createdBy: id });
-		res.status(200).json({
-			auctionItems,
-		});
-	} catch (error) {
-		console.log(error.message);
-		res.status(500).json({ message: error.message });
-	}
+  try {
+    const userId = req.user.id; // ✅ FIXED
+
+    const auctionItems = await AuctionItem.find({ createdBy: userId });
+
+    res.status(200).json({ auctionItems });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 const updateAuctionItem = async (req, res) => {
@@ -165,46 +158,48 @@ const getAuctionWinner = async (req, res) => {
 	}
 };
 
+
 const getAuctionsWonByUser = async (req, res) => {
-	try {
-		const token = req.headers.authorization.split(" ")[1];
-		const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-		const { id } = decodedToken;
+  try {
+    const userId = req.user.id; // ✅ FIXED
 
-		const bidsByUser = await Bid.find({ userId: id });
-		const auctionIds = bidsByUser.map((bid) => bid.auctionItemId);
+    const bidsByUser = await Bid.find({ userId });
+    const auctionIds = bidsByUser.map((bid) => bid.auctionItemId);
 
-		const uniqueAuctionIds = [...new Set(auctionIds)];
+    const uniqueAuctionIds = [...new Set(auctionIds)];
 
-		let wonAuctions = [];
+    let wonAuctions = [];
 
-		for (let i = 0; i < uniqueAuctionIds.length; i++) {
-			const auctionItemId = uniqueAuctionIds[i];
-			const bids = await Bid.find({ auctionItemId });
-			let winningBid = bids.reduce(
-				(max, bid) => (bid.bidAmount > max.bidAmount ? bid : max),
-				bids[0]
-			);
+    for (let auctionItemId of uniqueAuctionIds) {
+      const bids = await Bid.find({ auctionItemId });
 
-			const auctionItem = await AuctionItem.findById(auctionItemId);
-			const isAuctionEnded =
-				new Date(auctionItem.endDate) <= new Date(Date.now());
+      let winningBid = bids.reduce(
+        (max, bid) => (bid.bidAmount > max.bidAmount ? bid : max),
+        bids[0]
+      );
 
-			if (isAuctionEnded && winningBid.userId.toString() === id) {
-				wonAuctions.push({
-					auctionId: auctionItemId,
-					title: auctionItem.title,
-					description: auctionItem.description,
-					winningBid: winningBid.bidAmount,
-					endDate: auctionItem.endDate,
-				});
-			}
-		}
-		res.status(200).json({ wonAuctions });
-	} catch (error) {
-		console.log(error.message);
-		res.status(500).json({ message: error.message });
-	}
+      const auctionItem = await AuctionItem.findById(auctionItemId);
+
+      if (!auctionItem) continue;
+
+      const isAuctionEnded =
+        new Date(auctionItem.endDate) <= new Date();
+
+      if (isAuctionEnded && winningBid.userId.toString() === userId) {
+        wonAuctions.push({
+          auctionId: auctionItemId,
+          title: auctionItem.title,
+          description: auctionItem.description,
+          winningBid: winningBid.bidAmount,
+          endDate: auctionItem.endDate,
+        });
+      }
+    }
+
+    res.status(200).json({ wonAuctions });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 module.exports = {
