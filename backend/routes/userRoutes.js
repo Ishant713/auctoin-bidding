@@ -1,4 +1,5 @@
 const express = require("express");
+
 const {
   registerUser,
   loginUser,
@@ -12,7 +13,12 @@ const router = express.Router();
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
-router.get("/profile", authMiddleware, getProfile);
+
+// 🔥 TEMP FIX (to confirm issue)
+router.get("/profile", (req, res) => {
+  res.json({ message: "Profile working" });
+});
+
 router.post("/logout", logoutUser);
 
 module.exports = router;
