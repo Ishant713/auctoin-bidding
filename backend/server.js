@@ -5,9 +5,6 @@ const cors = require("cors");
 
 dotenv.config();
 
-// Force IPv4 (fixes many Windows + Atlas issues)
-mongoose.set("strictQuery", true);
-
 const app = express();
 
 app.use(express.json());
@@ -20,18 +17,21 @@ app.use(
   })
 );
 
+// Routes
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/auctions", require("./routes/auctionRoutes"));
 app.use("/api/bids", require("./routes/bidRoutes"));
 
+// Health check
+app.get("/", (req, res) => {
+  res.send("API running...");
+});
+
 const PORT = process.env.PORT || 5000;
 
-// 🔥 MongoDB Connection
+// MongoDB Connection
 mongoose
-  .connect(process.env.MONGODB_URI, {
-    serverSelectionTimeoutMS: 5000,
-    family: 4, // Forces IPv4
-  })
+  .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log("✅ MongoDB Connected");
 
@@ -39,7 +39,6 @@ mongoose
       console.log(`🚀 Server running on port ${PORT}`);
     });
   })
-  .catch((error) => {
-    console.error("❌ MongoDB connection failed:");
-    console.error(error);
+  .catch((err) => {
+    console.log("❌ MongoDB Error:", err);
   });
