@@ -3,6 +3,7 @@ import axios from "axios";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import "./AuctionItem.css";
 
+
 const ITEMS_PER_PAGE = 10;
 
 function AuctionItem() {
